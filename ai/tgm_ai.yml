@@ -1,0 +1,11 @@
+name: tgm_ai
+channels:
+  - defaults
+  - fastai
+  - pytorch
+dependencies:
+  - python=3.8
+  - flask
+  - fastai
+  - fastbook
+  - pylint
