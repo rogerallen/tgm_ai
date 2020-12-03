@@ -17,8 +17,9 @@
 (defn create-random-image-tuple
   "create a new random image tuple containing :code, :image, :score"
   [idx dir]
-  (let [code     (tgm/get-random-code)
-        filename (format "%s/img%03d.png" dir idx)
+  (let [filename (format "%s/img%03d.png" dir idx)
+        _        (println filename)
+        code     (tgm/get-random-code)
         image    (clisk.live/image (eval code) :size 224)
         _        (ImageIO/write image "png" (File. filename))
         score    (get-score filename)]
@@ -29,7 +30,6 @@
 (defn create-random-images
   "update image-list with num-random-images & scores"
   [image-list num-random-images image-dir]
-  (println "CREATE" num-random-images "=====================")
   (reset! image-list
           (map #(create-random-image-tuple % image-dir) (range num-random-images))))
 
@@ -38,8 +38,9 @@
   [idx dir parent0 parent1]
   (let [parent0-code (parent0 :code)
         parent1-code (parent1 :code)
-        code     (tgm/get-random-child parent0-code parent1-code)
         filename (format "%s/img%03d.png" dir idx)
+        _        (println filename)
+        code     (tgm/get-random-child parent0-code parent1-code)
         image    (clisk.live/image (eval code) :size 224)
         _        (ImageIO/write image "png" (File. filename))
         score    (get-score filename)]
@@ -47,12 +48,11 @@
      :image filename
      :score score}))
 
-(defn breed-an-image 
+(defn breed-an-image
   "update image-list with a new image"
   [image-list image-dir]
   (let [_       (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
         num-images (count @image-list)
-        _       (println "breed has " num-images " images")
         n       (max 3 (int (Math/floor (* 0.1 num-images))))
         parents (take n @image-list)
         parent0 (rand-nth parents)
@@ -63,7 +63,6 @@
 (defn breed-images
   "breed top-scoring images and update image-list"
   [image-list num-total-images image-dir]
-  (println "BREED!" num-total-images "================================")
   (while (< (count @image-list) num-total-images)
     (breed-an-image image-list image-dir)))
 
@@ -71,7 +70,7 @@
   "output some info on image-list"
   [image-list]
   (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
-  (pprint/pprint @image-list))
+  (dorun (map #(println (% :image) (% :score)) @image-list)))
 
 (defn run
   "run the algorithm to breed images"
@@ -88,9 +87,10 @@
   [& args]
   (let [num-random-images 5  ;; fixme commandline args
         num-total-images  10
-        image-dir         "images000"]
+        image-dir         "images/00"]
     (println "tweegeemee ai image creation")
     (println "num random images: " num-random-images)
     (println "num total images:  " num-total-images)
     (println "image directory:   " image-dir)
-    (run num-random-images num-total-images image-dir)))
+    (run num-random-images num-total-images image-dir)
+    (shutdown-agents)))
