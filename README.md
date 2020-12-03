@@ -1,36 +1,36 @@
 # tgm_ai
 
-FIXME: description
+Tweegeemee AI 
 
 ## Installation
 
-Download from http://example.com/FIXME.
+FIXME
 
 ## Usage
 
-FIXME: explanation
+In parallel:
 
-    $ java -jar tgm_ai-0.1.0-standalone.jar [args]
+  # Run Python AI server
+  > python3 ai/ai.py
+  # Run Clojure tweegeemee generator
+  > lein run -- -r 3 -t 5 -o "images/123"
 
 ## Options
 
-FIXME: listing of options this app accepts.
+When running with lein, use "--" prior to any of these
+
+  -h, --help                            Print this help
+  -r, --num-random-images R  5          Number of initial random images to create
+  -t, --num-total-images T   10         Number of total images to create
+  -o, --output-path PATH     images/00  Directory to store the images
 
 ## Examples
 
 ...
 
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
-
 ## License
 
-Copyright © 2020 FIXME
+Copyright © 2020 Roger Allen
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
