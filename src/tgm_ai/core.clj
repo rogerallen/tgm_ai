@@ -1,8 +1,10 @@
 (ns tgm-ai.core
   (:use [clisk live])
   (:require [tweegeemee.core :as tgm]
-            [clojure.pprint :as pprint]
-            [clojure.data.json :as json])
+            [clojure.tools.cli :refer [parse-opts]]
+            ;;[clojure.pprint :as pprint]
+            [clojure.data.json :as json]
+            [clojure.java.io :as io])
   (:import [java.io File]
            [javax.imageio ImageIO])
   (:gen-class))
@@ -18,7 +20,7 @@
   "create a new random image tuple containing :code, :image, :score"
   [idx dir]
   (let [filename (format "%s/img%03d.png" dir idx)
-        _        (println filename)
+        _        (println "\n" filename)
         code     (tgm/get-random-code)
         image    (clisk.live/image (eval code) :size 224)
         _        (ImageIO/write image "png" (File. filename))
@@ -39,7 +41,7 @@
   (let [parent0-code (parent0 :code)
         parent1-code (parent1 :code)
         filename (format "%s/img%03d.png" dir idx)
-        _        (println filename)
+        _        (println "\n" filename)
         code     (tgm/get-random-child parent0-code parent1-code)
         image    (clisk.live/image (eval code) :size 224)
         _        (ImageIO/write image "png" (File. filename))
@@ -70,6 +72,7 @@
   "output some info on image-list"
   [image-list]
   (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
+  (println "\nImage & Score")
   (dorun (map #(println (% :image) (% :score)) @image-list)))
 
 (defn run
@@ -82,15 +85,29 @@
     (breed-images image-list num-total-images image-dir)
     (report-images image-list)))
 
+(def args-spec [["-h" "--help" "Print this help" :default false]
+                ["-r" "--num-random-images R" "Number of initial random images to create" :parse-fn #(Integer/parseInt %) :default 5]
+                ["-t" "--num-total-images T" "Number of total images to create" :parse-fn #(Integer/parseInt %) :default 10]
+                ["-o" "--output-path PATH" "Directory to store the images" :default "images/00" ]
+                ])
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (let [num-random-images 5  ;; fixme commandline args
-        num-total-images  10
-        image-dir         "images/00"]
-    (println "tweegeemee ai image creation")
-    (println "num random images: " num-random-images)
-    (println "num total images:  " num-total-images)
-    (println "image directory:   " image-dir)
-    (run num-random-images num-total-images image-dir)
-    (shutdown-agents)))
+  (let [_ (println args)
+        {:keys [options arguments summary errors]} (parse-opts args args-spec)
+        num-random-images (:num-random-images options)
+        num-total-images  (:num-total-images options)
+        image-dir         (:output-path options)]
+    (println options)
+    (io/make-parents (str image-dir "/foo.txt"))
+    (if (:help options)
+      (println summary)
+      ;; else
+      (do (println "tweegeemee ai image creation")
+          (println "num random images: " num-random-images)
+          (println "num total images:  " num-total-images)
+          (println "image directory:   " image-dir)
+          (println)
+          (run num-random-images num-total-images image-dir)
+          (shutdown-agents)))))
