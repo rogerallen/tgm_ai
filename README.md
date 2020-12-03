@@ -11,7 +11,7 @@ FIXME
 In parallel:
 
   # Run Python AI server
-  > python3 ai/ai.py
+  > python3 ai/ai.py  ai/*.pkl
   # Run Clojure tweegeemee generator
   > lein run -- -r 3 -t 5 -o "images/123"
 
