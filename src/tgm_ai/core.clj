@@ -2,7 +2,7 @@
   (:use [clisk live])
   (:require [tweegeemee.core :as tgm]
             [clojure.tools.cli :refer [parse-opts]]
-            ;;[clojure.pprint :as pprint]
+            [clojure.pprint :as pprint]
             [clojure.data.json :as json]
             [clojure.java.io :as io])
   (:import [java.io File]
@@ -14,7 +14,7 @@
   [filename]
   (let [url (format "http://localhost:8484/ai/v1/score?file=%s" filename)
         rsp (json/read-str (slurp url))]
-    (rsp "yes")))
+    (- (rsp "yes") (rsp "no"))))
 
 (defn create-random-image-tuple
   "create a new random image tuple containing :code, :image, :score"
@@ -27,7 +27,8 @@
         score    (get-score filename)]
     {:code  code
      :image filename
-     :score score}))
+     :score score
+     :type "random"}))
 
 (defn create-random-images
   "update image-list with num-random-images & scores"
@@ -36,7 +37,7 @@
           (map #(create-random-image-tuple % image-dir) (range num-random-images))))
 
 (defn create-child-image-tuple
-  "create a new random image tuple containing :code, :image, :score"
+  "create a new child image tuple containing :code, :image, :score"
   [idx dir parent0 parent1]
   (let [parent0-code (parent0 :code)
         parent1-code (parent1 :code)
@@ -48,18 +49,37 @@
         score    (get-score filename)]
     {:code  code
      :image filename
-     :score score}))
+     :score score
+     :type "child"}))
+
+(defn create-mutant-image-tuple
+  "create a new mutant image tuple containing :code, :image, :score"
+  [idx dir parent]
+  (let [parent-code (parent :code)
+        filename (format "%s/img%03d.png" dir idx)
+        _        (println "\n" filename)
+        code     (tgm/get-random-mutant parent-code)
+        image    (clisk.live/image (eval code) :size 224)
+        _        (ImageIO/write image "png" (File. filename))
+        score    (get-score filename)]
+    {:code  code
+     :image filename
+     :score score
+     :type "mutant"}))
 
 (defn breed-an-image
   "update image-list with a new image"
   [image-list image-dir]
   (let [_       (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
         num-images (count @image-list)
-        n       (max 3 (int (Math/floor (* 0.1 num-images))))
+        n       (max 3 (int (Math/floor (* 0.25 num-images))))
         parents (take n @image-list)
+        _       (pprint/pprint (map #(dissoc % :code) parents))
         parent0 (rand-nth parents)
         parent1 (rand-nth parents)
-        child   (create-child-image-tuple num-images image-dir parent0 parent1)]
+      child   (if (< (rand) 0.5)
+                (create-child-image-tuple num-images image-dir parent0 parent1)
+                (create-mutant-image-tuple num-images image-dir parent0))]
     (swap! image-list conj child)))
 
 (defn breed-images
