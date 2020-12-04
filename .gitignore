@@ -9,8 +9,7 @@ pom.xml.asc
 /.lein-*
 /.nrepl-port
 /.prepl-port
-.hgignore
-.hg/
 .calva/
+.vscode
 ai/*.pkl
 images/
