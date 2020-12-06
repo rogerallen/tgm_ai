@@ -14,7 +14,7 @@
   [filename]
   (let [url (format "http://localhost:8484/ai/v1/score?file=%s" filename)
         rsp (json/read-str (slurp url))]
-    (- (rsp "yes") (rsp "no"))))
+    (rsp "score")))
 
 (defn create-random-image-tuple
   "create a new random image tuple containing :code, :image, :score"
@@ -72,7 +72,7 @@
   [image-list image-dir]
   (let [_       (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
         num-images (count @image-list)
-        n       (max 3 (int (Math/floor (* 0.25 num-images))))
+        n       (min 10 (max 3 (int (Math/floor (* 0.25 num-images)))))
         parents (take n @image-list)
         _       (pprint/pprint (map #(dissoc % :code) parents))
         parent0 (rand-nth parents)
@@ -91,7 +91,7 @@
 (defn report-images
   "output some info on image-list"
   [image-list]
-  (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
+  (reset! image-list (sort-by :score @image-list))
   (println "\nImage & Score")
   (dorun (map #(println (% :image) (% :score)) @image-list)))
 
