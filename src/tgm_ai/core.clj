@@ -67,19 +67,36 @@
      :score score
      :type "mutant"}))
 
+(defn wrand
+  "given a vector of slice sizes, returns the index of a slice given a
+  random spin of a roulette wheel with compartments proportional to
+  slices."
+  [slices]
+  (let [total (reduce + slices)
+        r     (rand total)]
+    (loop [i 0 sum 0]
+      (if (< r (+ (slices i) sum))
+        i
+        (recur (inc i) (+ (slices i) sum))))))
+
+;; FIXME - check created code vs. existing code
 (defn breed-an-image
   "update image-list with a new image"
   [image-list image-dir]
-  (let [_       (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
+  (let [_          (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
         num-images (count @image-list)
-        n       (min 10 (max 3 (int (Math/floor (* 0.25 num-images)))))
-        parents (take n @image-list)
-        _       (pprint/pprint (map #(dissoc % :code) parents))
-        parent0 (rand-nth parents)
-        parent1 (rand-nth parents)
-      child   (if (< (rand) 0.5)
-                (create-child-image-tuple num-images image-dir parent0 parent1)
-                (create-mutant-image-tuple num-images image-dir parent0))]
+        ;;_          (println num-images "num-images")
+        ;;n        (min 10 (max 5 (int (Math/floor (* 0.25 num-images)))))
+        parents    (take-while #(> (:score %) 0.0) @image-list)
+        ;;_        (pprint/pprint (map #(dissoc % :code) parents))
+        _          (println (count parents) "parents")
+        weights    (doall (mapv #(int (* 10 (:score %))) parents))
+        ;;_          (println "weights:" weights)
+        parent0    (nth parents (wrand weights))
+        parent1    (nth parents (wrand weights))
+        child      (if (< (rand) 0.5)
+                     (create-child-image-tuple num-images image-dir parent0 parent1)
+                     (create-mutant-image-tuple num-images image-dir parent0))]
     (swap! image-list conj child)))
 
 (defn breed-images
@@ -90,10 +107,11 @@
 
 (defn report-images
   "output some info on image-list"
-  [image-list]
+  [image-list image-dir]
   (reset! image-list (sort-by :score @image-list))
   (println "\nImage & Score")
-  (dorun (map #(println (% :image) (% :score)) @image-list)))
+  (dorun (map #(println (% :image) (% :score)) @image-list))
+  (pprint/pprint @image-list (io/writer (str image-dir "/report.txt"))))
 
 (defn run
   "run the algorithm to breed images"
@@ -103,13 +121,12 @@
     ;; reverse-sorted by :score.
     (create-random-images image-list num-random-images image-dir)
     (breed-images image-list num-total-images image-dir)
-    (report-images image-list)))
+    (report-images image-list image-dir)))
 
 (def args-spec [["-h" "--help" "Print this help" :default false]
                 ["-r" "--num-random-images R" "Number of initial random images to create" :parse-fn #(Integer/parseInt %) :default 5]
                 ["-t" "--num-total-images T" "Number of total images to create" :parse-fn #(Integer/parseInt %) :default 10]
-                ["-o" "--output-path PATH" "Directory to store the images" :default "images/00" ]
-                ])
+                ["-o" "--output-path PATH" "Directory to store the images" :default "images/00"]])
 
 (defn -main
   "I don't do a whole lot ... yet."

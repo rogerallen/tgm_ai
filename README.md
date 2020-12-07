@@ -1,10 +1,6 @@
 # tgm_ai
 
-Tweegeemee AI 
-
-## Installation
-
-FIXME
+Tweegeemee AI Image Creation
 
 ## Usage
 
@@ -13,7 +9,7 @@ In parallel:
   # Run Python AI server
   > python3 ai/ai.py  ai/*.pkl
   # Run Clojure tweegeemee generator
-  > lein run -- -r 3 -t 5 -o "images/123"
+  > lein run -- -r 10 -t 100 -o "images/foo"
 
 ## Options
 
@@ -23,10 +19,6 @@ When running with lein, use "--" prior to any of these
   -r, --num-random-images R  5          Number of initial random images to create
   -t, --num-total-images T   10         Number of total images to create
   -o, --output-path PATH     images/00  Directory to store the images
-
-## Examples
-
-...
 
 ## License
 
