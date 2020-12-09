@@ -74,6 +74,13 @@
      :score score
      :type "mutant"}))
 
+(defn score-to-weight
+  "convert score to good weight for that image"
+  [score]
+  (let [weight (* 10 score)
+        weight (int (* weight weight))]
+    weight))
+
 (defn wrand
   "given a vector of slice sizes, returns the index of a slice given a
   random spin of a roulette wheel with compartments proportional to
@@ -86,43 +93,62 @@
         i
         (recur (inc i) (+ (slices i) sum))))))
 
-;; FIXME - check created code vs. existing code
-(defn create-random-image 
+(defn image-tuple-match
+  "check the :code-hash and :image-hash to see if these
+   tuples are creating the same image"
+  [img1 img2]
+  (or (= (img1 :code-hash) (img2 :code-hash))
+      (= (img1 :image-hash) (img2 :image-hash))))
+
+(defn contains-image? 
+  "return true/false if image is in @image-list"
+  [image-list image]
+  (some #(image-tuple-match % image) @image-list))
+
+(defn create-random-image! 
   "update image-list with a new random image"
   [image-list image-dir]
-  (let [new-image (create-random-image-tuple (count @image-list) image-dir)]
-    (swap! image-list conj new-image)))
-    
-(defn breed-an-image
+  (loop []
+    (let [_ (println ">>>>>random #" (count @image-list))
+          new-image (create-random-image-tuple (count @image-list) image-dir)]
+      (if (not (contains-image? image-list new-image))
+        (swap! image-list conj new-image)
+        (recur))))) 
+
+(defn breed-an-image!
   "update image-list with a new image"
   [image-list image-dir]
-  (let [_          (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
-        num-images (count @image-list)
+  (loop []
+    (let [_ (println ">>>>>breed #" (count @image-list))
+          _          (reset! image-list (sort-by :score #(compare %2 %1) @image-list))
+          num-images (count @image-list)
         ;;_          (println num-images "num-images")
         ;;n        (min 10 (max 5 (int (Math/floor (* 0.25 num-images)))))
-        parents    (take-while #(> (:score %) 0.0) @image-list)
+          parents    (take-while #(> (:score %) 0.0) @image-list)
         ;;_        (pprint/pprint (map #(dissoc % :code) parents))
-        _          (println (count parents) "parents")
-        weights    (doall (mapv #(int (* 10 (:score %))) parents))
+          _          (println (count parents) "parents")
+          weights    (doall (mapv #(score-to-weight (:score %)) parents))
         ;;_          (println "weights:" weights)
-        parent0    (nth parents (wrand weights))
-        parent1    (nth parents (wrand weights))
-        child      (if (< (rand) 0.5)
-                     (create-child-image-tuple num-images image-dir parent0 parent1)
-                     (create-mutant-image-tuple num-images image-dir parent0))]
-    (swap! image-list conj child)))
+          parent0    (nth parents (wrand weights))
+          parent1    (nth parents (wrand weights))
+          child      (if (< (rand) 0.5)
+                       (create-child-image-tuple num-images image-dir parent0 parent1)
+                       (create-mutant-image-tuple num-images image-dir parent0))]
+      (if (not (contains-image? image-list child))
+        (swap! image-list conj child)
+        (recur)))))
 
 (defn create-random-images
   "update image-list with num-random-images & scores"
   [image-list num-random-images image-dir]
   (while (< (count @image-list) num-random-images)
-    (create-random-image image-list image-dir)))
+    (create-random-image! image-list image-dir)))
 
 (defn breed-images
   "breed top-scoring images and update image-list"
   [image-list num-total-images image-dir]
   (while (< (count @image-list) num-total-images)
-    (breed-an-image image-list image-dir)))
+    (breed-an-image! image-list image-dir)))
 
 (defn report-images
   "output some info on image-list"
