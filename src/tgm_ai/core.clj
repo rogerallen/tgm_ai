@@ -1,6 +1,7 @@
 (ns tgm-ai.core
   (:use [clisk live])
-  (:require [tweegeemee.core :as tgm]
+  (:require [tweegeemee.core :as tgmc]
+            [tweegeemee.image :as tgmi]
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.pprint :as pprint]
             [clojure.data.json :as json]
@@ -19,36 +20,38 @@
 (defn create-random-image-tuple
   "create a new random image tuple containing :code, :image, :score"
   [idx dir]
-  (let [filename (format "%s/img%03d.png" dir idx)
-        _        (println "\n" filename)
-        code     (tgm/get-random-code)
-        image    (clisk.live/image (eval code) :size 224)
-        _        (ImageIO/write image "png" (File. filename))
-        score    (get-score filename)]
+  (let [filename   (format "%s/img%03d.png" dir idx)
+        _          (println "\n" filename)
+        code       (tgmc/get-random-code)
+        code-hash  (hash code)
+        image-hash (tgmi/image-hash (clisk.live/image (eval code) :size tgmi/TEST-IMAGE-SIZE))
+        image      (clisk.live/image (eval code) :size 224)
+        _          (ImageIO/write image "png" (File. filename))
+        score      (get-score filename)]
     {:code  code
+     :code-hash code-hash
      :image filename
+     :image-hash image-hash
      :score score
      :type "random"}))
-
-(defn create-random-images
-  "update image-list with num-random-images & scores"
-  [image-list num-random-images image-dir]
-  (reset! image-list
-          (map #(create-random-image-tuple % image-dir) (range num-random-images))))
 
 (defn create-child-image-tuple
   "create a new child image tuple containing :code, :image, :score"
   [idx dir parent0 parent1]
   (let [parent0-code (parent0 :code)
         parent1-code (parent1 :code)
-        filename (format "%s/img%03d.png" dir idx)
-        _        (println "\n" filename)
-        code     (tgm/get-random-child parent0-code parent1-code)
-        image    (clisk.live/image (eval code) :size 224)
-        _        (ImageIO/write image "png" (File. filename))
-        score    (get-score filename)]
+        filename     (format "%s/img%03d.png" dir idx)
+        _            (println "\n" filename)
+        code         (tgmc/get-random-child parent0-code parent1-code)
+        code-hash    (hash code)
+        image-hash   (tgmi/image-hash (clisk.live/image (eval code) :size tgmi/TEST-IMAGE-SIZE))
+        image        (clisk.live/image (eval code) :size 224)
+        _            (ImageIO/write image "png" (File. filename))
+        score        (get-score filename)]
     {:code  code
+     :code-hash code-hash
      :image filename
+     :image-hash image-hash
      :score score
      :type "child"}))
 
@@ -56,14 +59,18 @@
   "create a new mutant image tuple containing :code, :image, :score"
   [idx dir parent]
   (let [parent-code (parent :code)
-        filename (format "%s/img%03d.png" dir idx)
-        _        (println "\n" filename)
-        code     (tgm/get-random-mutant parent-code)
-        image    (clisk.live/image (eval code) :size 224)
-        _        (ImageIO/write image "png" (File. filename))
-        score    (get-score filename)]
+        filename    (format "%s/img%03d.png" dir idx)
+        _           (println "\n" filename)
+        code        (tgmc/get-random-mutant parent-code)
+        code-hash   (hash code)
+        image-hash  (tgmi/image-hash (clisk.live/image (eval code) :size tgmi/TEST-IMAGE-SIZE))
+        image       (clisk.live/image (eval code) :size 224)
+        _           (ImageIO/write image "png" (File. filename))
+        score       (get-score filename)]
     {:code  code
+     :code-hash code-hash
      :image filename
+     :image-hash image-hash
      :score score
      :type "mutant"}))
 
@@ -80,6 +87,12 @@
         (recur (inc i) (+ (slices i) sum))))))
 
 ;; FIXME - check created code vs. existing code
+(defn create-random-image 
+  "update image-list with a new random image"
+  [image-list image-dir]
+  (let [new-image (create-random-image-tuple (count @image-list) image-dir)]
+    (swap! image-list conj new-image)))
+    
 (defn breed-an-image
   "update image-list with a new image"
   [image-list image-dir]
@@ -98,6 +111,12 @@
                      (create-child-image-tuple num-images image-dir parent0 parent1)
                      (create-mutant-image-tuple num-images image-dir parent0))]
     (swap! image-list conj child)))
+
+(defn create-random-images
+  "update image-list with num-random-images & scores"
+  [image-list num-random-images image-dir]
+  (while (< (count @image-list) num-random-images)
+    (create-random-image image-list image-dir)))
 
 (defn breed-images
   "breed top-scoring images and update image-list"
