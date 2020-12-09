@@ -34,7 +34,7 @@ def get_score():
     for ai in ai_scorers:
         prediction = ai.predict(img)
         prediction_tensor = prediction[2]
-        print(f"{file} -> {prediction_tensor}")
+        print(f"  {file} -> {prediction_tensor}")
         sub_score = 0.0
         for i,v in enumerate(prediction_tensor):
             if i == 0:
@@ -42,6 +42,7 @@ def get_score():
             else:
                 sub_score += v.item()
         score += sub_score
+    print(f"  score -> {score}")
     return jsonify({'file': file, 'score': score})
 
 if __name__ == '__main__':
